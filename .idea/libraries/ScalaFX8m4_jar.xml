@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="ScalaFX8m4_jar">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../ScalaFX8m4/out/artifacts/ScalaFX8m4_jar" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$PROJECT_DIR$/../ScalaFX8m4/out/artifacts/ScalaFX8m4_jar" recursive="false" />
+  </library>
+</component>
