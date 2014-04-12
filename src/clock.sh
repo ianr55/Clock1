@@ -15,7 +15,8 @@ for ext in "$SCALA_HOME"/lib/* ; do
     fi
 done
 PRJ_HOME=/c/usr/ianr/Projects/Idea1/Clock1
-PRJ_CP="$PRJ_HOME/out/production/Clock1"
+#PRJ_CP="$PRJ_HOME/out/production/Clock1"
+PRJ_CP="$PRJ_HOME/out/artifacts/Clock1_jar/Clock1.jar"
 CLASSPATH=$PRJ_CP:$HOME/lib/ScalaFX8m4.jar:$TOOL_CP:$SCALA_HOME/lib/scala-library.jar:$JAVA_HOME/jre/lib/rt.jar
 PATH=
 cd $PRJ_HOME/run

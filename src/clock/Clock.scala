@@ -110,4 +110,5 @@ object Clock extends JFXApp {
   }
   /* Start ticker */
   Ticker.start()
+  PeriodicGC.init()
 }

@@ -100,7 +100,7 @@ class Options {
   /* prefs are flushed on jvm exit */
   val prefs = Preferences.userNodeForPackage(this.getClass)
   /* Window frame style */
-  val mainStageFrame = (new PrefOption[StageStyle](prefs, "mainStageFrame", StageStyle.DECORATED,
+  val mainStageFrame = (new PrefOption[StageStyle](prefs, "mainStageFrame", StageStyle.UTILITY,
     new StageStyleConverter)).property
   /* Main window position */
   /* Filter movement until delay after finished */

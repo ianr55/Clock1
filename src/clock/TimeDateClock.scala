@@ -39,7 +39,7 @@ class FontChooser extends VBox(0) {
 //}
 
 class FontSizeCombo(option : IntegerProperty) extends ComboBox[String] {
-  editable = true
+  editable = false
   //  val editCell = buttonCell.value
   //  editCell.maxWidth = 20
   val converter1 = new IntStringConverter

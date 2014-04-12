@@ -44,22 +44,21 @@ object PeriodicGC {
       nextRun = Instant.now.plusSeconds(oneHour.toSeconds.toLong)
     }
   }
+  /* Needed to force object init and listener */
+  def init() : Unit = {}
 }
 
 /* Utility classes */
 
 class ArrayTup2[A, B](tup2s : (A, B)*) extends ArrayBuffer[(A, B)](tup2s.size) {
   this ++= tup2s
-
   def getAs : Seq[A] = this.map {tup => tup._1}
-
+  def getBs : Seq[B] = this.map {tup => tup._2}
   @throws(classOf[NoSuchElementException])
   def getA(b : B) : A = this.find {tup => tup._2 == b}.get._1
-
   @throws(classOf[NoSuchElementException])
   def getB(a : A) : B = this.find {tup => tup._1 == a}.get._2
 }
-
 
 class Count(init : Int) {
   var value : Int = init
