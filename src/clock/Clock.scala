@@ -50,22 +50,29 @@ object Clock extends JFXApp {
   val optionsDisplay = new TabPane {
     border = outerBorder
     this += new Tab {
-      content = alarmClock.optionsPane
+      content = new AlarmOptionsPane
       text = "Alarm"
       closable = false
     }
     this += new Tab {
-      content = timeDateClock.optionsPane
+      content = new TimeOptionsPane
       text = "Time"
+      closable = false
+    }
+    this += new Tab {
+      content = new AnalogOptionsPane
+      text = "Analog"
       closable = false
     }
   }
   val display = new HBox(2) {
+    //alignment = Pos.TOP_CENTER
+    //fillHeight = false
     var optionsShow = false
-    content = List(timeDateClock.displayPane)
-    timeDateClock.displayPane.onMouseClicked = {
+    content = List(timeDateClock)
+    timeDateClock.onMouseClicked = {
       (_ : MouseEvent) => {
-        if (optionsShow) content.retainAll(timeDateClock.displayPane)
+        if (optionsShow) content.retainAll(timeDateClock)
         else content.add(optionsDisplay)
         optionsShow = !optionsShow
         stage.sizeToScene()
@@ -73,15 +80,13 @@ object Clock extends JFXApp {
     }
     val popOutProperty = ObjectProperty[Option[Node]](None)
     popOutProperty.onChange {
-      (_, _, newValue) => {
-        content.retainAll(timeDateClock.displayPane, optionsDisplay)
-        newValue match {
-          case Some(node) =>
-            content.add(node)
-          case None =>
-        }
-        stage.sizeToScene()
+      content.retainAll(timeDateClock, optionsDisplay)
+      popOutProperty.value match {
+        case Some(node) =>
+          content.add(node)
+        case None =>
       }
+      stage.sizeToScene()
     }
   }
   /* Main stage window */

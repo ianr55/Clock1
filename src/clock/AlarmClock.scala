@@ -6,13 +6,13 @@ import java.time.LocalTime
 import scalafx.Includes._
 import scalafx.beans.property._
 import scalafx.event.ActionEvent
-import scalafx.geometry.HPos
 import scalafx.scene.control._
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout._
 import scalafx.scene.media.{Media, MediaPlayer}
 import scalafx.stage.FileChooser
 import scalafx.util.converter.IntStringConverter
+import scalafx.geometry.HPos
 
 class IntGrid(label : String, nRows : Int, nCols : Int, step : Int = 1) extends VBox(0) {
   border = Clock.outerBorder
@@ -72,10 +72,14 @@ class SoundPlayer {
   Clock.options.soundLoop.onChange((_, _, newValue) => {
     player.map {_.cycleCount = if (Clock.options.soundLoop.value) MediaPlayer.Indefinite else 1}
   })
+  Clock.options.alarmTest.onChange((_, _, newValue) => {
+    if (newValue) start() else stop()
+  })
 }
 
 class AlarmClock {
   /* Alarm sound operations */
+  val soundPlayer = new SoundPlayer
   Ticker.tick.onChange {
     if (Clock.options.alarmOn.value) {
       val now = LocalTime.now
@@ -86,10 +90,13 @@ class AlarmClock {
     }
   }
   Clock.options.alarmOn.onChange((_, _, newValue) => {
-    if (!newValue && !testCheck.selected.value && soundPlayer.isPlaying)
+    if (!newValue && !Clock.options.alarmTest.value && soundPlayer.isPlaying)
       soundPlayer.stop()
   })
-  /* Alarm options */
+}
+
+/* Alarm options */
+class AlarmOptionsPane extends GridPane {
   /* Enable */
   val alarmOnCheck = new CheckBox {
     selected = Clock.options.alarmOn.value
@@ -170,30 +177,26 @@ class AlarmClock {
   val loopCheck = new CheckBox("") {
     Clock.options.soundLoop <== selected
   }
-  val soundPlayer = new SoundPlayer
   /* Not a preference option */
   val testCheck = new CheckBox("") {
-    selected.onChange((_, _, newValue) => {
-      if (newValue) soundPlayer.start()
-      else soundPlayer.stop()
-    })
+    Clock.options.alarmTest <== selected
   }
-  val optionsPane = new GridPane {
-    val labelContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
-      halignment = HPos.CENTER
-    }
-    columnConstraints.add(labelContraints)
-    val row = new Count(0)
-    addRow(row ++, new Label("Alarm"), alarmOnCheck)
-    addRow(row ++, new Label("Time"), timeChooser)
-    addRow(row ++, new Label("Sound"), soundChoice)
-    addRow(row ++, new Label("Volume"), volumeSlider)
-    addRow(row ++, new Label("Loop"), loopCheck)
-    addRow(row ++, new Label("Test Play"), testCheck)
+  val labelContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
+    halignment = HPos.CENTER
+  }
+  columnConstraints.add(labelContraints)
+  hgap = 3
+  val row = new Count(0)
+  addRow(row ++, new Label("Alarm"), alarmOnCheck)
+  addRow(row ++, new Label("Time"), timeChooser)
+  addRow(row ++, new Label("Sound"), soundChoice)
+  addRow(row ++, new Label("Volume"), volumeSlider)
+  addRow(row ++, new Label("Loop"), loopCheck)
+  addRow(row ++, new Label("Test Play"), testCheck)
 
-  }
+
   /* recursive value error if in class init */
-  optionsPane.content.foreach {
+  content.foreach {
     _.onMousePressed = {(_ : MouseEvent) => Clock.display.popOutProperty.value = None}
   }
 }

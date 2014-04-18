@@ -8,14 +8,15 @@ import scala.collection.mutable.ArrayBuffer
 import scalafx.Includes._
 import scalafx.beans.property._
 import scalafx.event.ActionEvent
-import scalafx.geometry.{HPos, Pos}
+import scalafx.geometry.{Insets, HPos, Pos}
 import scalafx.scene.control._
-import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout._
 import scalafx.scene.text.Font
 import scalafx.stage.StageStyle
 import scalafx.util.converter.IntStringConverter
 import scalafx.scene.paint.Color
+import scalafx.scene.Node
+import scalafx.scene.input.MouseEvent
 
 class FontChooser extends VBox(0) {
   border = Clock.outerBorder
@@ -46,7 +47,7 @@ class FontSizeCombo(option : IntegerProperty) extends ComboBox[String] {
   List(10, 12, 14, 16, 18, 20, 24, 28, 32).foreach {this += converter1.toString(_)}
   private val current = option.value.toString
   selectionModel.value.select(current) /* May fail */
-  value.onChange((_, _, newValue) => option.value = converter1.fromString(newValue))
+  value.onChange {option.value = converter1.fromString(value.value)}
 }
 
 class FormatCombo(formats : ArrayTup2[String, String], optionFormat : StringProperty)
@@ -54,7 +55,7 @@ class FormatCombo(formats : ArrayTup2[String, String], optionFormat : StringProp
   formats.getAs.foreach {FormatCombo.this += _}
   private val current = formats.getA(optionFormat.value)
   selectionModel.value.select(current)
-  value.onChange((_, _, newValue) => optionFormat.value = formats.getB(newValue))
+  value.onChange {optionFormat.value = formats.getB(value.value)}
 }
 
 class TimeDateLabel(formatter : ObjectProperty[DateTimeFormatter], fontSize : IntegerProperty)
@@ -82,29 +83,49 @@ class TimeDateLabel(formatter : ObjectProperty[DateTimeFormatter], fontSize : In
   }
 }
 
-class TimeDateClock {
-
-  import Clock.options._
-
-  val displayPane = new VBox(0) {
-    alignment = Pos.CENTER
-    background <== Clock.options.background
-    border = Clock.outerBorder
-    //centerShape = true
-    //fillWidth = true
-    val timeText = new TimeDateLabel(timeFormatter, timeFontSize)
-    val dayText = new TimeDateLabel(dayFormatter, dayFontSize)
-    val dateText = new TimeDateLabel(dateFormatter, dateFontSize)
-    def setContent() {
-      val contents = ArrayBuffer[TimeDateLabel](timeText)
-      if (dayDisplay.value) contents += dayText
-      if (dateDisplay.value) contents += dateText
-      content = contents
-    }
-    setContent()
-    List(dayDisplay, dateDisplay).foreach {_.onChange {setContent()}}
+class TimeDateClock extends VBox(0) {
+  alignment = Pos.CENTER
+  background <== Clock.options.background
+  border = Clock.outerBorder
+  padding = Insets(4)
+  val timeText = new TimeDateLabel(Clock.options.timeFormatter, Clock.options.timeFontSize)
+  val digitalTimePane = new Pane {
+    content = timeText
   }
-  /* Options UI */
+  lazy val analogTimePane = new AnalogPane
+  val dayText = new TimeDateLabel(Clock.options.dayFormatter, Clock.options.dayFontSize)
+  val dateText = new TimeDateLabel(Clock.options.dateFormatter, Clock.options.dateFontSize)
+  def setContent() {
+    val timePane = if (Clock.options.analogTime.value) analogTimePane else digitalTimePane
+    val contents = ArrayBuffer[Node](timePane)
+    if (Clock.options.dayDisplay.value) contents += dayText
+    if (Clock.options.dateDisplay.value) contents += dateText
+    content = contents
+  }
+  setContent()
+  List(Clock.options.analogTime, Clock.options.dayDisplay, Clock.options.dateDisplay).foreach {
+    _.onChange {setContent()}
+  }
+}
+
+/* Options UI */
+class TimeOptionsPane extends GridPane {
+  hgap = 3
+  val frames = new ArrayTup2[String, StageStyle](
+    "All" -> StageStyle.DECORATED, "Minimal" -> StageStyle.UTILITY,
+    "None" -> StageStyle.UNDECORATED)
+  val frameCombo = new ComboBox[String] {
+    tooltip = Tooltip("Requires restart")
+    /* No effect */
+    //tooltip.value.font = new Font("System", 12)
+    frames.getAs.foreach {this += _}
+    val current = frames.getA(Clock.options.mainStageFrame.value)
+    selectionModel.value.select(current)
+    value.onChange {Clock.options.mainStageFrame.value = frames.getB(value.value)}
+  }
+  val analogTimeCheck = new CheckBox {
+    selected <==> Clock.options.analogTime
+  }
   val backColorPicker = new ColorPicker(Clock.options.backColor.value) {
     value.onChange {Clock.options.backColor.value = value.value}
     /* Problem with scalafx, javafx cvn */
@@ -121,18 +142,7 @@ class TimeDateClock {
     Clock.display.popOutProperty.value = Some(fontChooser)
     fontChooser.requestFocus()
   }
-  val frames = new ArrayTup2[String, StageStyle](
-    "All" -> StageStyle.DECORATED, "Minimal" -> StageStyle.UTILITY,
-    "None" -> StageStyle.UNDECORATED)
-  val frameCombo = new ComboBox[String] {
-    tooltip = Tooltip("Requires restart")
-    /* No effect */
-    //tooltip.value.font = new Font("System", 12)
-    frames.getAs.foreach {this += _}
-    val current = frames.getA(Clock.options.mainStageFrame.value)
-    selectionModel.value.select(current)
-    value.onChange((_, _, newValue) => Clock.options.mainStageFrame.value = frames.getB(newValue))
-  }
+
   val timeFormats = new ArrayTup2[String, String](
     "0123" -> "HHmm", "1:2" -> "H:m", "01:23" -> "HH:mm", "1:2 AM" -> "h:m a",
     "012345" -> "HHmmss", "1:2:3" -> "H:m:s", "01:23:45" -> "HH:mm:ss", "1:2:3 AM" -> "h:m:s a")
@@ -153,30 +163,31 @@ class TimeDateClock {
   val dateDisplayCheck = new CheckBox() {
     selected <==> Clock.options.dateDisplay
   }
-  val optionsPane = new GridPane {
-    val labelContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
-      halignment = HPos.CENTER
-    }
-    val valueContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
-      fillWidth = true
-    }
-    columnConstraints.addAll(labelContraints, valueContraints)
-    val row = new Count(0)
-    addRow(row ++, new Label("Background"), backColorPicker)
-    addRow(row ++, new Label("Font Color"), fontColorPicker)
-    addRow(row ++, new Label("Font Name"), fontButton)
-    addRow(row ++, new Label("Frame"), frameCombo)
-    addRow(row ++, new Label("Time Format"), timeFormatCombo)
-    addRow(row ++, new Label("Time Font Size"), new FontSizeCombo(Clock.options.timeFontSize))
-    addRow(row ++, new Label("Day Display"), dayDisplayCheck)
-    addRow(row ++, new Label("Day Format"), dayFormatCombo)
-    addRow(row ++, new Label("Day Font Size"), new FontSizeCombo(Clock.options.dayFontSize))
-    addRow(row ++, new Label("Date Display"), dateDisplayCheck)
-    addRow(row ++, new Label("Date Format"), dateFormatCombo)
-    addRow(row ++, new Label("Date Font Size"), new FontSizeCombo(Clock.options.dateFontSize))
+  val labelContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
+    halignment = HPos.CENTER
   }
+  val valueContraints = new ColumnConstraints(new javafx.scene.layout.ColumnConstraints) {
+    fillWidth = true
+  }
+  columnConstraints.addAll(labelContraints, valueContraints)
+  val row = new Count(0)
+  addRow(row ++, new Label("Frame"), frameCombo)
+  addRow(row ++, new Label("Background"), backColorPicker)
+  addRow(row ++, new Label("Font Color"), fontColorPicker)
+  addRow(row ++, new Label("Font Name"), fontButton)
+  addRow(row ++, new Label("Analog Time"), analogTimeCheck)
+  addRow(row ++, new Label("Time Format"), timeFormatCombo)
+  addRow(row ++, new Label("Time Font Size"), new FontSizeCombo(Clock.options.timeFontSize))
+  addRow(row ++, new Label("Day Display"), dayDisplayCheck)
+  addRow(row ++, new Label("Day Format"), dayFormatCombo)
+  addRow(row ++, new Label("Day Font Size"), new FontSizeCombo(Clock.options.dayFontSize))
+  addRow(row ++, new Label("Date Display"), dateDisplayCheck)
+  addRow(row ++, new Label("Date Format"), dateFormatCombo)
+  addRow(row ++, new Label("Date Font Size"), new FontSizeCombo(Clock.options.dateFontSize))
   /* recursive value error if in class init */
-  optionsPane.content.foreach {
-    _.onMousePressed = {(_ : MouseEvent) => Clock.display.popOutProperty.value = None}
+  content.foreach {
+    _.onMousePressed = {
+      (_ : MouseEvent) => Clock.display.popOutProperty.value = None
+    }
   }
 }

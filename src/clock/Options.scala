@@ -51,8 +51,8 @@ class DelayIntOption(prefs : Preferences, key : String, default : Int, delay : j
   private var lastVal : Int = 0
   private var lastInstant = Instant.MIN
   private var tickListener : Option[Subscription] = None
-  property.onChange((_, _, newValue) => {
-    lastVal = newValue.intValue
+  property.onChange {
+    lastVal = property.value
     lastInstant = Instant.now
     if (tickListener.isEmpty) {
       tickListener = Some(Ticker.tick.onChange {
@@ -63,7 +63,7 @@ class DelayIntOption(prefs : Preferences, key : String, default : Int, delay : j
         }
       })
     }
-  })
+  }
 }
 
 class PrefOption[T](prefs : Preferences, key : String, default : T,
@@ -72,28 +72,28 @@ class PrefOption[T](prefs : Preferences, key : String, default : T,
     this(prefs, key, converter.fromString(default), converter)
   private val value : T = converter.fromString(prefs.get(key, converter.toString(default)))
   val property = ObjectProperty(value)
-  property.onChange {(_, _, newValue) => prefs.put(key, converter.toString(newValue))}
+  property.onChange {prefs.put(key, converter.toString(property.value))}
 }
 
 /* javafx type hierarchy a bit awkward for bind() */
 class BooleanPrefOption(prefs : Preferences, key : String, default : Boolean) {
   val property = BooleanProperty(prefs.getBoolean(key, default))
-  property.onChange {(_, _, newValue) => prefs.putBoolean(key, newValue)}
+  property.onChange {prefs.putBoolean(key, property.value)}
 }
 
 class DoublePrefOption(prefs : Preferences, key : String, default : Double) {
   val property = DoubleProperty(prefs.getDouble(key, default))
-  property.onChange {(_, _, newValue) => prefs.putDouble(key, newValue.doubleValue)}
+  property.onChange {prefs.putDouble(key, property.value)}
 }
 
 class IntPrefOption(prefs : Preferences, key : String, default : Int) {
   val property = IntegerProperty(prefs.getInt(key, default))
-  property.onChange {(_, _, newValue) => prefs.putInt(key, newValue.intValue)}
+  property.onChange {prefs.putInt(key, property.value)}
 }
 
 class StringPrefOption(prefs : Preferences, key : String, default : String) {
   val property = StringProperty(prefs.get(key, default))
-  property.onChange {(_, _, newValue) => prefs.put(key, newValue)}
+  property.onChange {prefs.put(key, property.value)}
 }
 
 class Options {
@@ -107,6 +107,7 @@ class Options {
   val mainStageX = (new DelayIntOption(prefs, "mainStageX", 100, Duration.ofSeconds(3))).property
   val mainStageY = (new DelayIntOption(prefs, "mainStageY", 20, Duration.ofSeconds(3))).property
   /* Clock display items */
+  val analogTime = (new BooleanPrefOption(prefs, "analogTime", false)).property
   val dayDisplay = (new BooleanPrefOption(prefs, "dayDisplay", true)).property
   val dateDisplay = (new BooleanPrefOption(prefs, "dateDisplay", true)).property
   /* Formatters */
@@ -114,7 +115,7 @@ class Options {
   (StringProperty, ObjectProperty[DateTimeFormatter]) = {
     val format = (new StringPrefOption(prefs, prefKey, default)).property
     val formatter = ObjectProperty[DateTimeFormatter](DateTimeFormatter.ofPattern(format.value))
-    format.onChange {(_, _, newValue) => formatter.value = DateTimeFormatter.ofPattern(newValue)}
+    format.onChange {formatter.value = DateTimeFormatter.ofPattern(format.value)}
     (format, formatter)
   }
   val (timeFormat, timeFormatter) = setupFormatterOption("timeFormat", "HH:mm")
@@ -129,19 +130,28 @@ class Options {
   /* Range 0 to 1 */
   val soundVolume = (new DoublePrefOption(prefs, "soundVolume", 0.5)).property
   val soundLoop = (new BooleanPrefOption(prefs, "soundLoop", false)).property
+  val alarmTest = BooleanProperty(false)
+  /* Not persistent */
   /* Look */
-  val backColor = (new PrefOption[Color](prefs, "backColor", Color.WHITE,
+  val backColor = (new PrefOption[Color](prefs, "backColor", Color.BLACK,
     new ColorConverter)).property
   def backgroundOfColor(color : Color) : Background = {
     val backFill = new BackgroundFill(color, CornerRadii.Empty, Insets.Empty)
     new Background(Array(backFill))
   }
   val background = ObjectProperty(backgroundOfColor(backColor.value))
-  backColor.onChange {(_, _, newValue) => background.value = backgroundOfColor(newValue)}
-  val fontColor = (new PrefOption[Color](prefs, "fontColor", Color.BLACK,
+  backColor.onChange {background.value = backgroundOfColor(backColor.value)}
+  val fontColor = (new PrefOption[Color](prefs, "fontColor", Color.WHITE,
     new ColorConverter)).property
   val fontName = (new StringPrefOption(prefs, "fontName", Font.default.getName)).property
   val timeFontSize = (new IntPrefOption(prefs, "timeFontSize", 20)).property
   val dayFontSize = (new IntPrefOption(prefs, "dayFontSize", 14)).property
   val dateFontSize = (new IntPrefOption(prefs, "dateFontSize", 14)).property
+  /* Analog time */
+  val faceColor = (new PrefOption[Color](prefs, "faceColor", Color.GREY,
+    new ColorConverter)).property
+  val handColor = (new PrefOption[Color](prefs, "handColor", Color.WHITE,
+    new ColorConverter)).property
+  val analogSeconds = (new BooleanPrefOption(prefs, "analogSeconds", true)).property
+  val analogScale = (new IntPrefOption(prefs, "analogScale", 30)).property
 }
