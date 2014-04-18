@@ -20,10 +20,8 @@ PRJ_CP="$PRJ_HOME/out/artifacts/Clock1_jar/Clock1.jar"
 CLASSPATH=$PRJ_CP:$HOME/lib/ScalaFX8m4.jar:$TOOL_CP:$SCALA_HOME/lib/scala-library.jar:$JAVA_HOME/jre/lib/rt.jar
 PATH=
 cd $PRJ_HOME/run
-echo "Java start"
 "$JAVACMD" $JAVA_OPTS -classpath "$CLASSPATH" \
     -Dscala.home="$SCALA_HOME" -Dscala.usejavacp=true \
     scala.tools.nsc.MainGenericRunner clock.Clock \
     2>Clock.error.txt
-echo "Java exit"
 
